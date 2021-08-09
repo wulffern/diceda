@@ -374,7 +374,7 @@
 /* #undef HAVE_TERMCAP */
 
 /* Define to 1 if you have the <termcap.h> header file. */
-/* #undef HAVE_TERMCAP_H */
+#define HAVE_TERMCAP_H 1
 
 /* Define to 1 if you have the <termios.h> header file. */
 #define HAVE_TERMIOS_H 1
@@ -457,7 +457,7 @@
 #define NGSPICEBINDIR "/opt/eda/bin"
 
 /* Define the build date */
-#define NGSPICEBUILDDATE "Thu Jul 22 14:49:28 UTC 2021"
+#define NGSPICEBUILDDATE "Mon Aug  9 19:41:57 UTC 2021"
 
 /* Define the directory for architecture independent data files */
 #define NGSPICEDATADIR "/opt/eda/share/ngspice"
