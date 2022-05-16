@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  *  yosys -- Yosys Open SYnthesis Suite
  *
- *  Copyright (C) 2012  Clifford Wolf <clifford@clifford.at>
+ *  Copyright (C) 2012  Claire Xenia Wolf <claire@yosyshq.com>
  *
  *  Permission to use, copy, modify, and/or distribute this software for any
  *  purpose with or without fee is hereby granted, provided that the above
@@ -33,7 +33,7 @@
 // This header is very boring. It just defines some general things that
 // belong nowhere else and includes the interesting headers.
 //
-// Find more information in the "CodingReadme" file.
+// Find more information in the "guidelines/GettingStarted" file.
 
 
 #ifndef YOSYS_H
@@ -52,6 +52,7 @@
 #include <stdexcept>
 #include <memory>
 #include <cmath>
+#include <cstddef>
 
 #include <sstream>
 #include <fstream>
@@ -92,6 +93,8 @@ extern Tcl_Obj *Tcl_NewIntObj(int intValue);
 extern Tcl_Obj *Tcl_NewListObj(int objc, Tcl_Obj *const objv[]);
 extern Tcl_Obj *Tcl_ObjSetVar2(Tcl_Interp *interp, Tcl_Obj *part1Ptr, Tcl_Obj *part2Ptr, Tcl_Obj *newValuePtr, int flags);
 #  endif
+#  undef CONST
+#  undef INLINE
 #endif
 
 #ifdef _WIN32
@@ -117,6 +120,11 @@ extern Tcl_Obj *Tcl_ObjSetVar2(Tcl_Interp *interp, Tcl_Obj *part1Ptr, Tcl_Obj *p
 #    define isatty _isatty
 #    define fileno _fileno
 #  endif
+
+// The following defines conflict with our identifiers:
+#  undef CONST
+// `wingdi.h` defines a TRANSPARENT macro that conflicts with X(TRANSPARENT) entry in kernel/constids.inc
+#  undef TRANSPARENT
 #endif
 
 #ifndef PATH_MAX
@@ -131,23 +139,28 @@ extern Tcl_Obj *Tcl_ObjSetVar2(Tcl_Interp *interp, Tcl_Obj *part1Ptr, Tcl_Obj *p
 #define YOSYS_NAMESPACE_PREFIX   Yosys::
 #define USING_YOSYS_NAMESPACE    using namespace Yosys;
 
-#if __cplusplus >= 201103L
-#  define YS_OVERRIDE override
-#  define YS_FINAL final
+#if defined(__GNUC__) || defined(__clang__)
+#  define YS_ATTRIBUTE(...) __attribute__((__VA_ARGS__))
+#elif defined(_MSC_VER)
+#  define YS_ATTRIBUTE(...)
 #else
-#  define YS_OVERRIDE
-#  define YS_FINAL
+#  define YS_ATTRIBUTE(...)
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
-#  define YS_ATTRIBUTE(...) __attribute__((__VA_ARGS__))
-#  define YS_NORETURN
-#elif defined(_MSC_VER)
-#  define YS_ATTRIBUTE(...)
-#  define YS_NORETURN __declspec(noreturn)
+#  define YS_MAYBE_UNUSED __attribute__((__unused__))
 #else
-#  define YS_ATTRIBUTE(...)
-#  define YS_NORETURN
+#  define YS_MAYBE_UNUSED
+#endif
+
+#if __cplusplus >= 201703L
+#  define YS_FALLTHROUGH [[fallthrough]];
+#elif defined(__clang__)
+#  define YS_FALLTHROUGH [[clang::fallthrough]];
+#elif defined(__GNUC__)
+#  define YS_FALLTHROUGH [[gnu::fallthrough]];
+#else
+#  define YS_FALLTHROUGH
 #endif
 
 YOSYS_NAMESPACE_BEGIN
@@ -206,9 +219,12 @@ namespace RTLIL {
 	struct SigSpec;
 	struct Wire;
 	struct Cell;
+	struct Memory;
+	struct Process;
 	struct Module;
 	struct Design;
 	struct Monitor;
+	enum State : unsigned char;
 }
 
 namespace AST {
@@ -227,6 +243,8 @@ using RTLIL::Design;
 namespace hashlib {
 	template<> struct hash_ops<RTLIL::Wire*> : hash_obj_ops {};
 	template<> struct hash_ops<RTLIL::Cell*> : hash_obj_ops {};
+	template<> struct hash_ops<RTLIL::Memory*> : hash_obj_ops {};
+	template<> struct hash_ops<RTLIL::Process*> : hash_obj_ops {};
 	template<> struct hash_ops<RTLIL::Module*> : hash_obj_ops {};
 	template<> struct hash_ops<RTLIL::Design*> : hash_obj_ops {};
 	template<> struct hash_ops<RTLIL::Monitor*> : hash_obj_ops {};
@@ -234,6 +252,8 @@ namespace hashlib {
 
 	template<> struct hash_ops<const RTLIL::Wire*> : hash_obj_ops {};
 	template<> struct hash_ops<const RTLIL::Cell*> : hash_obj_ops {};
+	template<> struct hash_ops<const RTLIL::Memory*> : hash_obj_ops {};
+	template<> struct hash_ops<const RTLIL::Process*> : hash_obj_ops {};
 	template<> struct hash_ops<const RTLIL::Module*> : hash_obj_ops {};
 	template<> struct hash_ops<const RTLIL::Design*> : hash_obj_ops {};
 	template<> struct hash_ops<const RTLIL::Monitor*> : hash_obj_ops {};
@@ -255,7 +275,9 @@ int readsome(std::istream &f, char *s, int n);
 std::string next_token(std::string &text, const char *sep = " \t\r\n", bool long_strings = false);
 std::vector<std::string> split_tokens(const std::string &text, const char *sep = " \t\r\n");
 bool patmatch(const char *pattern, const char *string);
+#if !defined(YOSYS_DISABLE_SPAWN)
 int run_command(const std::string &command, std::function<void(const std::string&)> process_line = std::function<void(const std::string&)>());
+#endif
 std::string make_temp_file(std::string template_str = "/tmp/yosys_XXXXXX");
 std::string make_temp_dir(std::string template_str = "/tmp/yosys_XXXXXX");
 bool check_file_exists(std::string filename, bool is_exec = false);
@@ -300,23 +322,35 @@ Tcl_Interp *yosys_get_tcl_interp();
 extern RTLIL::Design *yosys_design;
 
 RTLIL::IdString new_id(std::string file, int line, std::string func);
+RTLIL::IdString new_id_suffix(std::string file, int line, std::string func, std::string suffix);
 
 #define NEW_ID \
 	YOSYS_NAMESPACE_PREFIX new_id(__FILE__, __LINE__, __FUNCTION__)
+#define NEW_ID_SUFFIX(suffix) \
+	YOSYS_NAMESPACE_PREFIX new_id_suffix(__FILE__, __LINE__, __FUNCTION__, suffix)
 
-#define ID(_str) \
-	([]() { static YOSYS_NAMESPACE_PREFIX RTLIL::IdString _id(_str); return _id; })()
+// Create a statically allocated IdString object, using for example ID::A or ID($add).
+//
+// Recipe for Converting old code that is using conversion of strings like ID::A and
+// "$add" for creating IdStrings: Run below SED command on the .cc file and then use for
+// example "meld foo.cc foo.cc.orig" to manually compile errors, if necessary.
+//
+//  sed -i.orig -r 's/"\\\\([a-zA-Z0-9_]+)"/ID(\1)/g; s/"(\$[a-zA-Z0-9_]+)"/ID(\1)/g;' <filename>
+//
+#define ID(_id) ([]() { const char *p = "\\" #_id, *q = p[1] == '$' ? p+1 : p; \
+        static const YOSYS_NAMESPACE_PREFIX RTLIL::IdString id(q); return id; })()
+namespace ID = RTLIL::ID;
 
 RTLIL::Design *yosys_get_design();
 std::string proc_self_dirname();
 std::string proc_share_dirname();
+std::string proc_program_prefix();
 const char *create_prompt(RTLIL::Design *design, int recursion_counter);
 std::vector<std::string> glob_filename(const std::string &filename_pattern);
 void rewrite_filename(std::string &filename);
 
 void run_pass(std::string command, RTLIL::Design *design = nullptr);
-void run_frontend(std::string filename, std::string command, std::string *backend_command, std::string *from_to_label = nullptr, RTLIL::Design *design = nullptr);
-void run_frontend(std::string filename, std::string command, RTLIL::Design *design = nullptr);
+bool run_frontend(std::string filename, std::string command, RTLIL::Design *design = nullptr, std::string *from_to_label = nullptr);
 void run_backend(std::string filename, std::string command, RTLIL::Design *design = nullptr);
 void shell(RTLIL::Design *design);
 
@@ -337,6 +371,9 @@ extern std::map<std::string, void*> loaded_python_plugins;
 #endif
 extern std::map<std::string, std::string> loaded_plugin_aliases;
 void load_plugin(std::string filename, std::vector<std::string> aliases);
+
+extern std::string yosys_share_dirname;
+extern std::string yosys_abc_executable;
 
 YOSYS_NAMESPACE_END
 

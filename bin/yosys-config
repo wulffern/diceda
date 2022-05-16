@@ -6,11 +6,11 @@ help() {
 		echo "Usage: $0 [--exec] [--prefix pf] args.."
 		echo "       $0 --build modname.so cppsources.."
 		echo ""
-		echo "Replecement args:"
+		echo "Replacement args:"
 		echo "    --cxx         gcc"
-		echo "    --cxxflags    $( echo '-Wall -Wextra -ggdb -I"/opt/eda/share/yosys/include" -MD -D_YOSYS_ -fPIC -I/opt/eda/include -std=c++11 -Os -DYOSYS_ENABLE_READLINE -DYOSYS_ENABLE_PLUGINS -DYOSYS_ENABLE_GLOB -I/usr/include/tcl8.6 -DYOSYS_ENABLE_TCL -DYOSYS_ENABLE_ABC -DYOSYS_ENABLE_COVER' | fmt -w60 | sed ':a;N;$!ba;s/\n/ \\\n                      /g' )"
-		echo "    --ldflags     -L/opt/eda/lib -rdynamic"
-		echo "    --ldlibs      -lstdc++ -lm -lrt -lreadline -lffi -ldl -ltcl8.6 -ltclstub8.6"
+		echo "    --cxxflags    $( echo '-Wall -Wextra -ggdb -I"/opt/eda/share/yosys/include" -MD -MP -D_YOSYS_ -fPIC -I/opt/eda/include -std=c++11 -Os -DYOSYS_ENABLE_READLINE -DYOSYS_ENABLE_PLUGINS -DYOSYS_ENABLE_GLOB -DYOSYS_ENABLE_ZLIB -I/usr/include/tcl8.6 -DYOSYS_ENABLE_TCL -DYOSYS_ENABLE_ABC -DYOSYS_ENABLE_COVER' | fmt -w60 | sed ':a;N;$!ba;s/\n/ \\\n                      /g' )"
+		echo "    --ldflags     -rdynamic"
+		echo "    --ldlibs      -lstdc++ -lm -lrt -lreadline -lffi -ldl -lz -ltcl8.6 -ltclstub8.6"
 		echo "    --bindir      /opt/eda/bin"
 		echo "    --datdir      /opt/eda/share/yosys"
 		echo ""
@@ -18,21 +18,21 @@ help() {
 		echo ""
 		echo "Use --exec to call a command instead of generating output. Example usage:"
 		echo ""
-		echo "  yosys-config --exec --cxx --cxxflags --ldflags -o plugin.so -shared plugin.cc --ldlibs"
+		echo "  $0 --exec --cxx --cxxflags --ldflags -o plugin.so -shared plugin.cc --ldlibs"
 		echo ""
 		echo "The above command can be abbreviated as:"
 		echo ""
-		echo "  yosys-config --build plugin.so plugin.cc"
+		echo "  $0 --build plugin.so plugin.cc"
 		echo ""
 		echo "Use --prefix to change the prefix for the special args from '--' to"
 		echo "something else. Example:"
 		echo ""
-		echo "  yosys-config --prefix @ bindir: @bindir"
+		echo "  $0 --prefix @ bindir: @bindir"
 		echo ""
 		echo "The args --bindir and --datdir can be directly followed by a slash and"
 		echo "additional text. Example:"
 		echo ""
-		echo "  yosys-config --datdir/simlib.v"
+		echo "  $0 --datdir/simlib.v"
 		echo ""
 	} >&2
 	exit 1
@@ -62,11 +62,11 @@ for opt; do
 		"$prefix"cxx)
 			tokens=( "${tokens[@]}"  gcc       ) ;;
 		"$prefix"cxxflags)
-			tokens=( "${tokens[@]}"  -Wall -Wextra -ggdb -I"/opt/eda/share/yosys/include" -MD -D_YOSYS_ -fPIC -I/opt/eda/include -std=c++11 -Os -DYOSYS_ENABLE_READLINE -DYOSYS_ENABLE_PLUGINS -DYOSYS_ENABLE_GLOB -I/usr/include/tcl8.6 -DYOSYS_ENABLE_TCL -DYOSYS_ENABLE_ABC -DYOSYS_ENABLE_COVER  ) ;;
+			tokens=( "${tokens[@]}"  -Wall -Wextra -ggdb -I"/opt/eda/share/yosys/include" -MD -MP -D_YOSYS_ -fPIC -I/opt/eda/include -std=c++11 -Os -DYOSYS_ENABLE_READLINE -DYOSYS_ENABLE_PLUGINS -DYOSYS_ENABLE_GLOB -DYOSYS_ENABLE_ZLIB -I/usr/include/tcl8.6 -DYOSYS_ENABLE_TCL -DYOSYS_ENABLE_ABC -DYOSYS_ENABLE_COVER  ) ;;
 		"$prefix"ldflags)
-			tokens=( "${tokens[@]}"  -L/opt/eda/lib -rdynamic   ) ;;
+			tokens=( "${tokens[@]}"  -rdynamic   ) ;;
 		"$prefix"ldlibs)
-			tokens=( "${tokens[@]}"  -lstdc++ -lm -lrt -lreadline -lffi -ldl -ltcl8.6 -ltclstub8.6    ) ;;
+			tokens=( "${tokens[@]}"  -lstdc++ -lm -lrt -lreadline -lffi -ldl -lz -ltcl8.6 -ltclstub8.6    ) ;;
 		"$prefix"bindir)
 			tokens=( "${tokens[@]}" '/opt/eda/bin'   ) ;;
 		"$prefix"datdir)

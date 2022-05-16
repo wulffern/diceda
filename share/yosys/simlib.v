@@ -1,7 +1,7 @@
 /*
  *  yosys -- Yosys Open SYnthesis Suite
  *
- *  Copyright (C) 2012  Clifford Wolf <clifford@clifford.at>
+ *  Copyright (C) 2012  Claire Xenia Wolf <claire@yosyshq.com>
  *
  *  Permission to use, copy, modify, and/or distribute this software for any
  *  purpose with or without fee is hereby granted, provided that the above
@@ -237,7 +237,7 @@ endmodule
 
 //  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 //-
-//-     $reduce_and (A, B, Y)
+//-     $reduce_and (A, Y)
 //-
 //- An AND reduction. This corresponds to the Verilog unary prefix '&' operator.
 //-
@@ -264,7 +264,7 @@ endmodule
 
 //  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 //-
-//-     $reduce_or (A, B, Y)
+//-     $reduce_or (A, Y)
 //-
 //- An OR reduction. This corresponds to the Verilog unary prefix '|' operator.
 //-
@@ -291,7 +291,7 @@ endmodule
 
 //  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 //-
-//-     $reduce_xor (A, B, Y)
+//-     $reduce_xor (A, Y)
 //-
 //- A XOR reduction. This corresponds to the Verilog unary prefix '^' operator.
 //-
@@ -318,7 +318,7 @@ endmodule
 
 //  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 //-
-//-     $reduce_xnor (A, B, Y)
+//-     $reduce_xnor (A, Y)
 //-
 //- A XNOR reduction. This corresponds to the Verilog unary prefix '~^' operator.
 //-
@@ -345,7 +345,7 @@ endmodule
 
 //  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 //-
-//-     $reduce_bool (A, B, Y)
+//-     $reduce_bool (A, Y)
 //-
 //- An OR reduction. This cell type is used instead of $reduce_or when a signal is
 //- implicitly converted to a boolean signal, e.g. for operands of '&&' and '||'.
@@ -480,10 +480,18 @@ input [B_WIDTH-1:0] B;
 output [Y_WIDTH-1:0] Y;
 
 generate
-	if (B_SIGNED) begin:BLOCK1
-		assign Y = $signed(B) < 0 ? A << -B : A >> B;
-	end else begin:BLOCK2
-		assign Y = A >> B;
+	if (A_SIGNED) begin:BLOCK1
+		if (B_SIGNED) begin:BLOCK2
+			assign Y = $signed(B) < 0 ? $signed(A) << -B : $signed(A) >> B;
+		end else begin:BLOCK3
+			assign Y = $signed(A) >> B;
+		end
+	end else begin:BLOCK4
+		if (B_SIGNED) begin:BLOCK5
+			assign Y = $signed(B) < 0 ? A << -B : A >> B;
+		end else begin:BLOCK6
+			assign Y = A >> B;
+		end
 	end
 endgenerate
 
@@ -532,14 +540,26 @@ endmodule
 
 // --------------------------------------------------------
 
+//  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
+//-
+//-     $lcu (P, G, CI, CO)
+//-
+//- Lookahead carry unit
+//- A building block dedicated to fast computation of carry-bits used in binary
+//- arithmetic operations. By replacing the ripple carry structure used in full-adder
+//- blocks, the more significant  bits of the sum can be expected to be computed more
+//- quickly.
+//- Typically created during `techmap` of $alu cells (see the "_90_alu" rule in
+//- +/techmap.v).
 module \$lcu (P, G, CI, CO);
 
 parameter WIDTH = 1;
 
-input [WIDTH-1:0] P, G;
-input CI;
+input [WIDTH-1:0] P;    // Propagate
+input [WIDTH-1:0] G;    // Generate
+input CI;               // Carry-in
 
-output reg [WIDTH-1:0] CO;
+output reg [WIDTH-1:0] CO; // Carry-out
 
 integer i;
 always @* begin
@@ -555,6 +575,17 @@ endmodule
 
 // --------------------------------------------------------
 
+//  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
+//-
+//-     $alu (A, B, CI, BI, X, Y, CO)
+//-
+//- Arithmetic logic unit.
+//- A building block supporting both binary addition/subtraction operations, and
+//- indirectly, comparison operations.
+//- Typically created by the `alumacc` pass, which transforms:
+//-   $add, $sub, $lt, $le, $ge, $gt, $eq, $eqx, $ne, $nex
+//- cells into this $alu cell.
+//-
 module \$alu (A, B, CI, BI, X, Y, CO);
 
 parameter A_SIGNED = 0;
@@ -563,12 +594,16 @@ parameter A_WIDTH = 1;
 parameter B_WIDTH = 1;
 parameter Y_WIDTH = 1;
 
-input [A_WIDTH-1:0] A;
-input [B_WIDTH-1:0] B;
-output [Y_WIDTH-1:0] X, Y;
+input [A_WIDTH-1:0] A;      // Input operand
+input [B_WIDTH-1:0] B;      // Input operand
+output [Y_WIDTH-1:0] X;     // A xor B (sign-extended, optional B inversion,
+                            //          used in combination with
+                            //          reduction-AND for $eq/$ne ops)
+output [Y_WIDTH-1:0] Y;     // Sum
 
-input CI, BI;
-output [Y_WIDTH-1:0] CO;
+input CI;                   // Carry-in (set for $sub)
+input BI;                   // Invert-B (set for $sub)
+output [Y_WIDTH-1:0] CO;    // Carry-out
 
 wire [Y_WIDTH-1:0] AA, BB;
 
@@ -584,6 +619,7 @@ endgenerate
 wire y_co_undef = ^{A, A, B, B, CI, CI, BI, BI};
 
 assign X = AA ^ BB;
+// Full adder
 assign Y = (AA + BB + CI) ^ {Y_WIDTH{y_co_undef}};
 
 function get_carry;
@@ -969,6 +1005,12 @@ endmodule
 
 // --------------------------------------------------------
 
+//  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
+//-
+//-     $div (A, B, Y)
+//-
+//- Division with truncated result (rounded towards 0).
+//-
 module \$div (A, B, Y);
 
 parameter A_SIGNED = 0;
@@ -993,6 +1035,14 @@ endmodule
 
 // --------------------------------------------------------
 
+//  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
+//-
+//-     $mod (A, B, Y)
+//-
+//- Modulo/remainder of division with truncated result (rounded towards 0).
+//-
+//- Invariant: $div(A, B) * B + $mod(A, B) == A
+//-
 module \$mod (A, B, Y);
 
 parameter A_SIGNED = 0;
@@ -1009,6 +1059,83 @@ generate
 	if (A_SIGNED && B_SIGNED) begin:BLOCK1
 		assign Y = $signed(A) % $signed(B);
 	end else begin:BLOCK2
+		assign Y = A % B;
+	end
+endgenerate
+
+endmodule
+
+// --------------------------------------------------------
+
+//  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
+//-
+//-     $divfloor (A, B, Y)
+//-
+//- Division with floored result (rounded towards negative infinity).
+//-
+module \$divfloor (A, B, Y);
+
+parameter A_SIGNED = 0;
+parameter B_SIGNED = 0;
+parameter A_WIDTH = 0;
+parameter B_WIDTH = 0;
+parameter Y_WIDTH = 0;
+
+input [A_WIDTH-1:0] A;
+input [B_WIDTH-1:0] B;
+output [Y_WIDTH-1:0] Y;
+
+generate
+	if (A_SIGNED && B_SIGNED) begin:BLOCK1
+		localparam WIDTH =
+				A_WIDTH >= B_WIDTH && A_WIDTH >= Y_WIDTH ? A_WIDTH :
+				B_WIDTH >= A_WIDTH && B_WIDTH >= Y_WIDTH ? B_WIDTH : Y_WIDTH;
+		wire [WIDTH:0] A_buf, B_buf, N_buf;
+		assign A_buf = $signed(A);
+		assign B_buf = $signed(B);
+		assign N_buf = (A[A_WIDTH-1] == B[B_WIDTH-1]) || A == 0 ? A_buf : $signed(A_buf - (B[B_WIDTH-1] ? B_buf+1 : B_buf-1));
+		assign Y = $signed(N_buf) / $signed(B_buf);
+	end else begin:BLOCK2
+		assign Y = A / B;
+	end
+endgenerate
+
+endmodule
+
+// --------------------------------------------------------
+
+//  |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
+//-
+//-     $modfloor (A, B, Y)
+//-
+//- Modulo/remainder of division with floored result (rounded towards negative infinity).
+//-
+//- Invariant: $divfloor(A, B) * B + $modfloor(A, B) == A
+//-
+module \$modfloor (A, B, Y);
+
+parameter A_SIGNED = 0;
+parameter B_SIGNED = 0;
+parameter A_WIDTH = 0;
+parameter B_WIDTH = 0;
+parameter Y_WIDTH = 0;
+
+input [A_WIDTH-1:0] A;
+input [B_WIDTH-1:0] B;
+output [Y_WIDTH-1:0] Y;
+
+generate
+	if (A_SIGNED && B_SIGNED) begin:BLOCK1
+		localparam WIDTH = B_WIDTH >= Y_WIDTH ? B_WIDTH : Y_WIDTH;
+		wire [WIDTH-1:0] B_buf, Y_trunc;
+		assign B_buf = $signed(B);
+		assign Y_trunc = $signed(A) % $signed(B);
+		// flooring mod is the same as truncating mod for positive division results (A and B have
+		// the same sign), as well as when there's no remainder.
+		// For all other cases, they behave as `floor - trunc = B`
+		assign Y = (A[A_WIDTH-1] == B[B_WIDTH-1]) || Y_trunc == 0 ? Y_trunc : $signed(B_buf) + $signed(Y_trunc);
+	end else begin:BLOCK2
+		// no difference between truncating and flooring for unsigned
 		assign Y = A % B;
 	end
 endgenerate
@@ -1165,6 +1292,33 @@ endmodule
 
 // --------------------------------------------------------
 
+module \$bmux (A, S, Y);
+
+parameter WIDTH = 0;
+parameter S_WIDTH = 0;
+
+input [(WIDTH << S_WIDTH)-1:0] A;
+input [S_WIDTH-1:0] S;
+output [WIDTH-1:0] Y;
+
+wire [WIDTH-1:0] bm0_out, bm1_out;
+
+generate
+	if (S_WIDTH > 1) begin:muxlogic
+		\$bmux #(.WIDTH(WIDTH), .S_WIDTH(S_WIDTH-1)) bm0 (.A(A), .S(S[S_WIDTH-2:0]), .Y(bm0_out));
+		\$bmux #(.WIDTH(WIDTH), .S_WIDTH(S_WIDTH-1)) bm1 (.A(A[(WIDTH << S_WIDTH)-1:WIDTH << (S_WIDTH - 1)]), .S(S[S_WIDTH-2:0]), .Y(bm1_out));
+		assign Y = S[S_WIDTH-1] ? bm1_out : bm0_out;
+	end else if (S_WIDTH == 1) begin:simple
+		assign Y = S ? A[1] : A[0];
+	end else begin:passthru
+		assign Y = A;
+	end
+endgenerate
+
+endmodule
+
+// --------------------------------------------------------
+
 module \$pmux (A, B, S, Y);
 
 parameter WIDTH = 0;
@@ -1191,6 +1345,26 @@ end
 endmodule
 
 // --------------------------------------------------------
+
+module \$demux (A, S, Y);
+
+parameter WIDTH = 1;
+parameter S_WIDTH = 1;
+
+input [WIDTH-1:0] A;
+input [S_WIDTH-1:0] S;
+output [(WIDTH << S_WIDTH)-1:0] Y;
+
+genvar i;
+generate
+	for (i = 0; i < (1 << S_WIDTH); i = i + 1) begin:slices
+		assign Y[i*WIDTH+:WIDTH] = (S == i) ? A : 0;
+	end
+endgenerate
+
+endmodule
+
+// --------------------------------------------------------
 `ifndef SIMLIB_NOLUT
 
 module \$lut (A, Y);
@@ -1199,30 +1373,9 @@ parameter WIDTH = 0;
 parameter LUT = 0;
 
 input [WIDTH-1:0] A;
-output reg Y;
+output Y;
 
-wire lut0_out, lut1_out;
-
-generate
-	if (WIDTH <= 1) begin:simple
-		assign {lut1_out, lut0_out} = LUT;
-	end else begin:complex
-		\$lut #( .WIDTH(WIDTH-1), .LUT(LUT                  ) ) lut0 ( .A(A[WIDTH-2:0]), .Y(lut0_out) );
-		\$lut #( .WIDTH(WIDTH-1), .LUT(LUT >> (2**(WIDTH-1))) ) lut1 ( .A(A[WIDTH-2:0]), .Y(lut1_out) );
-	end
-
-	if (WIDTH > 0) begin:lutlogic
-		always @* begin
-			casez ({A[WIDTH-1], lut0_out, lut1_out})
-				3'b?11: Y = 1'b1;
-				3'b?00: Y = 1'b0;
-				3'b0??: Y = lut0_out;
-				3'b1??: Y = lut1_out;
-				default: Y = 1'bx;
-			endcase
-		end
-	end
-endgenerate
+\$bmux #(.WIDTH(1), .S_WIDTH(WIDTH)) mux(.A(LUT), .S(A), .Y(Y));
 
 endmodule
 
@@ -1605,7 +1758,7 @@ wire [WIDTH-1:0] pos_clr = CLR_POLARITY ? CLR : ~CLR;
 genvar i;
 generate
 	for (i = 0; i < WIDTH; i = i+1) begin:bitslices
-		always @(posedge pos_set[i], posedge pos_clr[i])
+		always @*
 			if (pos_clr[i])
 				Q[i] <= 0;
 			else if (pos_set[i])
@@ -1703,6 +1856,39 @@ endgenerate
 
 endmodule
 
+// --------------------------------------------------------
+
+module \$dffsre (CLK, SET, CLR, EN, D, Q);
+
+parameter WIDTH = 0;
+parameter CLK_POLARITY = 1'b1;
+parameter SET_POLARITY = 1'b1;
+parameter CLR_POLARITY = 1'b1;
+parameter EN_POLARITY = 1'b1;
+
+input CLK, EN;
+input [WIDTH-1:0] SET, CLR, D;
+output reg [WIDTH-1:0] Q;
+
+wire pos_clk = CLK == CLK_POLARITY;
+wire [WIDTH-1:0] pos_set = SET_POLARITY ? SET : ~SET;
+wire [WIDTH-1:0] pos_clr = CLR_POLARITY ? CLR : ~CLR;
+
+genvar i;
+generate
+	for (i = 0; i < WIDTH; i = i+1) begin:bitslices
+		always @(posedge pos_set[i], posedge pos_clr[i], posedge pos_clk)
+			if (pos_clr[i])
+				Q[i] <= 0;
+			else if (pos_set[i])
+				Q[i] <= 1;
+			else if (EN == EN_POLARITY)
+				Q[i] <= D[i];
+	end
+endgenerate
+
+endmodule
+
 `endif
 // --------------------------------------------------------
 
@@ -1730,6 +1916,156 @@ endmodule
 
 // --------------------------------------------------------
 
+module \$aldff (CLK, ALOAD, AD, D, Q);
+
+parameter WIDTH = 0;
+parameter CLK_POLARITY = 1'b1;
+parameter ALOAD_POLARITY = 1'b1;
+
+input CLK, ALOAD;
+input [WIDTH-1:0] AD;
+input [WIDTH-1:0] D;
+output reg [WIDTH-1:0] Q;
+wire pos_clk = CLK == CLK_POLARITY;
+wire pos_aload = ALOAD == ALOAD_POLARITY;
+
+always @(posedge pos_clk, posedge pos_aload) begin
+	if (pos_aload)
+		Q <= AD;
+	else
+		Q <= D;
+end
+
+endmodule
+
+// --------------------------------------------------------
+
+module \$sdff (CLK, SRST, D, Q);
+
+parameter WIDTH = 0;
+parameter CLK_POLARITY = 1'b1;
+parameter SRST_POLARITY = 1'b1;
+parameter SRST_VALUE = 0;
+
+input CLK, SRST;
+input [WIDTH-1:0] D;
+output reg [WIDTH-1:0] Q;
+wire pos_clk = CLK == CLK_POLARITY;
+wire pos_srst = SRST == SRST_POLARITY;
+
+always @(posedge pos_clk) begin
+	if (pos_srst)
+		Q <= SRST_VALUE;
+	else
+		Q <= D;
+end
+
+endmodule
+
+// --------------------------------------------------------
+
+module \$adffe (CLK, ARST, EN, D, Q);
+
+parameter WIDTH = 0;
+parameter CLK_POLARITY = 1'b1;
+parameter EN_POLARITY = 1'b1;
+parameter ARST_POLARITY = 1'b1;
+parameter ARST_VALUE = 0;
+
+input CLK, ARST, EN;
+input [WIDTH-1:0] D;
+output reg [WIDTH-1:0] Q;
+wire pos_clk = CLK == CLK_POLARITY;
+wire pos_arst = ARST == ARST_POLARITY;
+
+always @(posedge pos_clk, posedge pos_arst) begin
+	if (pos_arst)
+		Q <= ARST_VALUE;
+	else if (EN == EN_POLARITY)
+		Q <= D;
+end
+
+endmodule
+
+// --------------------------------------------------------
+
+module \$aldffe (CLK, ALOAD, AD, EN, D, Q);
+
+parameter WIDTH = 0;
+parameter CLK_POLARITY = 1'b1;
+parameter EN_POLARITY = 1'b1;
+parameter ALOAD_POLARITY = 1'b1;
+
+input CLK, ALOAD, EN;
+input [WIDTH-1:0] D;
+input [WIDTH-1:0] AD;
+output reg [WIDTH-1:0] Q;
+wire pos_clk = CLK == CLK_POLARITY;
+wire pos_aload = ALOAD == ALOAD_POLARITY;
+
+always @(posedge pos_clk, posedge pos_aload) begin
+	if (pos_aload)
+		Q <= AD;
+	else if (EN == EN_POLARITY)
+		Q <= D;
+end
+
+endmodule
+
+// --------------------------------------------------------
+
+module \$sdffe (CLK, SRST, EN, D, Q);
+
+parameter WIDTH = 0;
+parameter CLK_POLARITY = 1'b1;
+parameter EN_POLARITY = 1'b1;
+parameter SRST_POLARITY = 1'b1;
+parameter SRST_VALUE = 0;
+
+input CLK, SRST, EN;
+input [WIDTH-1:0] D;
+output reg [WIDTH-1:0] Q;
+wire pos_clk = CLK == CLK_POLARITY;
+wire pos_srst = SRST == SRST_POLARITY;
+
+always @(posedge pos_clk) begin
+	if (pos_srst)
+		Q <= SRST_VALUE;
+	else if (EN == EN_POLARITY)
+		Q <= D;
+end
+
+endmodule
+
+// --------------------------------------------------------
+
+module \$sdffce (CLK, SRST, EN, D, Q);
+
+parameter WIDTH = 0;
+parameter CLK_POLARITY = 1'b1;
+parameter EN_POLARITY = 1'b1;
+parameter SRST_POLARITY = 1'b1;
+parameter SRST_VALUE = 0;
+
+input CLK, SRST, EN;
+input [WIDTH-1:0] D;
+output reg [WIDTH-1:0] Q;
+wire pos_clk = CLK == CLK_POLARITY;
+wire pos_srst = SRST == SRST_POLARITY;
+
+always @(posedge pos_clk) begin
+	if (EN == EN_POLARITY) begin
+		if (pos_srst)
+			Q <= SRST_VALUE;
+		else
+			Q <= D;
+	end
+end
+
+endmodule
+
+// --------------------------------------------------------
+
 module \$dlatch (EN, D, Q);
 
 parameter WIDTH = 0;
@@ -1741,6 +2077,28 @@ output reg [WIDTH-1:0] Q;
 
 always @* begin
 	if (EN == EN_POLARITY)
+		Q = D;
+end
+
+endmodule
+
+// --------------------------------------------------------
+
+module \$adlatch (EN, ARST, D, Q);
+
+parameter WIDTH = 0;
+parameter EN_POLARITY = 1'b1;
+parameter ARST_POLARITY = 1'b1;
+parameter ARST_VALUE = 0;
+
+input EN, ARST;
+input [WIDTH-1:0] D;
+output reg [WIDTH-1:0] Q;
+
+always @* begin
+	if (ARST == ARST_POLARITY)
+		Q = ARST_VALUE;
+	else if (EN == EN_POLARITY)
 		Q = D;
 end
 
@@ -1899,6 +2257,34 @@ end
 
 endmodule
 
+module \$memrd_v2 (CLK, EN, ARST, SRST, ADDR, DATA);
+
+parameter MEMID = "";
+parameter ABITS = 8;
+parameter WIDTH = 8;
+
+parameter CLK_ENABLE = 0;
+parameter CLK_POLARITY = 0;
+parameter TRANSPARENCY_MASK = 0;
+parameter COLLISION_X_MASK = 0;
+parameter ARST_VALUE = 0;
+parameter SRST_VALUE = 0;
+parameter INIT_VALUE = 0;
+parameter CE_OVER_SRST = 0;
+
+input CLK, EN, ARST, SRST;
+input [ABITS-1:0] ADDR;
+output [WIDTH-1:0] DATA;
+
+initial begin
+	if (MEMID != "") begin
+		$display("ERROR: Found non-simulatable instance of $memrd_v2!");
+		$finish;
+	end
+end
+
+endmodule
+
 // --------------------------------------------------------
 
 module \$memwr (CLK, EN, ADDR, DATA);
@@ -1925,6 +2311,31 @@ end
 
 endmodule
 
+module \$memwr_v2 (CLK, EN, ADDR, DATA);
+
+parameter MEMID = "";
+parameter ABITS = 8;
+parameter WIDTH = 8;
+
+parameter CLK_ENABLE = 0;
+parameter CLK_POLARITY = 0;
+parameter PORTID = 0;
+parameter PRIORITY_MASK = 0;
+
+input CLK;
+input [WIDTH-1:0] EN;
+input [ABITS-1:0] ADDR;
+input [WIDTH-1:0] DATA;
+
+initial begin
+	if (MEMID != "") begin
+		$display("ERROR: Found non-simulatable instance of $memwr_v2!");
+		$finish;
+	end
+end
+
+endmodule
+
 // --------------------------------------------------------
 
 module \$meminit (ADDR, DATA);
@@ -1942,6 +2353,30 @@ input [WORDS*WIDTH-1:0] DATA;
 initial begin
 	if (MEMID != "") begin
 		$display("ERROR: Found non-simulatable instance of $meminit!");
+		$finish;
+	end
+end
+
+endmodule
+
+// --------------------------------------------------------
+
+module \$meminit_v2 (ADDR, DATA, EN);
+
+parameter MEMID = "";
+parameter ABITS = 8;
+parameter WIDTH = 8;
+parameter WORDS = 1;
+
+parameter PRIORITY = 0;
+
+input [ABITS-1:0] ADDR;
+input [WORDS*WIDTH-1:0] DATA;
+input [WIDTH-1:0] EN;
+
+initial begin
+	if (MEMID != "") begin
+		$display("ERROR: Found non-simulatable instance of $meminit_v2!");
 		$finish;
 	end
 end
@@ -2029,6 +2464,122 @@ always @(RD_CLK, RD_ADDR, RD_DATA, WR_CLK, WR_EN, WR_ADDR, WR_DATA) begin
 			// $display("Transparent read from %s: addr=%b data=%b", MEMID, RD_ADDR[i*ABITS +: ABITS],  memory[RD_ADDR[i*ABITS +: ABITS] - OFFSET]);
 			RD_DATA[i*WIDTH +: WIDTH] <= memory[RD_ADDR[i*ABITS +: ABITS] - OFFSET];
 		end
+	end
+
+	LAST_RD_CLK <= RD_CLK;
+	LAST_WR_CLK <= WR_CLK;
+end
+
+endmodule
+
+module \$mem_v2 (RD_CLK, RD_EN, RD_ARST, RD_SRST, RD_ADDR, RD_DATA, WR_CLK, WR_EN, WR_ADDR, WR_DATA);
+
+parameter MEMID = "";
+parameter signed SIZE = 4;
+parameter signed OFFSET = 0;
+parameter signed ABITS = 2;
+parameter signed WIDTH = 8;
+parameter signed INIT = 1'bx;
+
+parameter signed RD_PORTS = 1;
+parameter RD_CLK_ENABLE = 1'b1;
+parameter RD_CLK_POLARITY = 1'b1;
+parameter RD_TRANSPARENCY_MASK = 1'b0;
+parameter RD_COLLISION_X_MASK = 1'b0;
+parameter RD_WIDE_CONTINUATION = 1'b0;
+parameter RD_CE_OVER_SRST = 1'b0;
+parameter RD_ARST_VALUE = 1'b0;
+parameter RD_SRST_VALUE = 1'b0;
+parameter RD_INIT_VALUE = 1'b0;
+
+parameter signed WR_PORTS = 1;
+parameter WR_CLK_ENABLE = 1'b1;
+parameter WR_CLK_POLARITY = 1'b1;
+parameter WR_PRIORITY_MASK = 1'b0;
+parameter WR_WIDE_CONTINUATION = 1'b0;
+
+input [RD_PORTS-1:0] RD_CLK;
+input [RD_PORTS-1:0] RD_EN;
+input [RD_PORTS-1:0] RD_ARST;
+input [RD_PORTS-1:0] RD_SRST;
+input [RD_PORTS*ABITS-1:0] RD_ADDR;
+output reg [RD_PORTS*WIDTH-1:0] RD_DATA;
+
+input [WR_PORTS-1:0] WR_CLK;
+input [WR_PORTS*WIDTH-1:0] WR_EN;
+input [WR_PORTS*ABITS-1:0] WR_ADDR;
+input [WR_PORTS*WIDTH-1:0] WR_DATA;
+
+reg [WIDTH-1:0] memory [SIZE-1:0];
+
+integer i, j, k;
+reg [WR_PORTS-1:0] LAST_WR_CLK;
+reg [RD_PORTS-1:0] LAST_RD_CLK;
+
+function port_active;
+	input clk_enable;
+	input clk_polarity;
+	input last_clk;
+	input this_clk;
+	begin
+		casez ({clk_enable, clk_polarity, last_clk, this_clk})
+			4'b0???: port_active = 1;
+			4'b1101: port_active = 1;
+			4'b1010: port_active = 1;
+			default: port_active = 0;
+		endcase
+	end
+endfunction
+
+initial begin
+	for (i = 0; i < SIZE; i = i+1)
+		memory[i] = INIT >>> (i*WIDTH);
+	RD_DATA = RD_INIT_VALUE;
+end
+
+always @(RD_CLK, RD_ARST, RD_ADDR, RD_DATA, WR_CLK, WR_EN, WR_ADDR, WR_DATA) begin
+`ifdef SIMLIB_MEMDELAY
+	#`SIMLIB_MEMDELAY;
+`endif
+	for (i = 0; i < RD_PORTS; i = i+1) begin
+		if (RD_CLK_ENABLE[i] && RD_EN[i] && port_active(RD_CLK_ENABLE[i], RD_CLK_POLARITY[i], LAST_RD_CLK[i], RD_CLK[i])) begin
+			// $display("Read from %s: addr=%b data=%b", MEMID, RD_ADDR[i*ABITS +: ABITS],  memory[RD_ADDR[i*ABITS +: ABITS] - OFFSET]);
+			RD_DATA[i*WIDTH +: WIDTH] <= memory[RD_ADDR[i*ABITS +: ABITS] - OFFSET];
+
+			for (j = 0; j < WR_PORTS; j = j+1) begin
+				if (RD_TRANSPARENCY_MASK[i*WR_PORTS + j] && port_active(WR_CLK_ENABLE[j], WR_CLK_POLARITY[j], LAST_WR_CLK[j], WR_CLK[j]) && RD_ADDR[i*ABITS +: ABITS] == WR_ADDR[j*ABITS +: ABITS])
+					for (k = 0; k < WIDTH; k = k+1)
+						if (WR_EN[j*WIDTH+k])
+							RD_DATA[i*WIDTH+k] <= WR_DATA[j*WIDTH+k];
+				if (RD_COLLISION_X_MASK[i*WR_PORTS + j] && port_active(WR_CLK_ENABLE[j], WR_CLK_POLARITY[j], LAST_WR_CLK[j], WR_CLK[j]) && RD_ADDR[i*ABITS +: ABITS] == WR_ADDR[j*ABITS +: ABITS])
+					for (k = 0; k < WIDTH; k = k+1)
+						if (WR_EN[j*WIDTH+k])
+							RD_DATA[i*WIDTH+k] <= 1'bx;
+			end
+		end
+	end
+
+	for (i = 0; i < WR_PORTS; i = i+1) begin
+		if (port_active(WR_CLK_ENABLE[i], WR_CLK_POLARITY[i], LAST_WR_CLK[i], WR_CLK[i]))
+			for (j = 0; j < WIDTH; j = j+1)
+				if (WR_EN[i*WIDTH+j]) begin
+					// $display("Write to %s: addr=%b data=%b", MEMID, WR_ADDR[i*ABITS +: ABITS], WR_DATA[i*WIDTH+j]);
+					memory[WR_ADDR[i*ABITS +: ABITS] - OFFSET][j] = WR_DATA[i*WIDTH+j];
+				end
+	end
+
+	for (i = 0; i < RD_PORTS; i = i+1) begin
+		if (!RD_CLK_ENABLE[i]) begin
+			// $display("Combinatorial read from %s: addr=%b data=%b", MEMID, RD_ADDR[i*ABITS +: ABITS],  memory[RD_ADDR[i*ABITS +: ABITS] - OFFSET]);
+			RD_DATA[i*WIDTH +: WIDTH] <= memory[RD_ADDR[i*ABITS +: ABITS] - OFFSET];
+		end
+	end
+
+	for (i = 0; i < RD_PORTS; i = i+1) begin
+		if (RD_SRST[i] && port_active(RD_CLK_ENABLE[i], RD_CLK_POLARITY[i], LAST_RD_CLK[i], RD_CLK[i]) && (RD_EN[i] || !RD_CE_OVER_SRST[i]))
+			RD_DATA[i*WIDTH +: WIDTH] <= RD_SRST_VALUE[i*WIDTH +: WIDTH];
+		if (RD_ARST[i])
+			RD_DATA[i*WIDTH +: WIDTH] <= RD_ARST_VALUE[i*WIDTH +: WIDTH];
 	end
 
 	LAST_RD_CLK <= RD_CLK;
