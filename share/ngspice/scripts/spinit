@@ -16,12 +16,12 @@ set x11lineararcs
 strcmp __flag $program "ngspice"
 if $__flag = 0
 
- codemodel /home/wulff/pro/eda/lib/ngspice/spice2poly.cm
- codemodel /home/wulff/pro/eda/lib/ngspice/analog.cm
- codemodel /home/wulff/pro/eda/lib/ngspice/digital.cm
- codemodel /home/wulff/pro/eda/lib/ngspice/xtradev.cm
- codemodel /home/wulff/pro/eda/lib/ngspice/xtraevt.cm
- codemodel /home/wulff/pro/eda/lib/ngspice/table.cm
+ codemodel $EDA_DIRlib/ngspice/spice2poly.cm
+ codemodel $EDA_DIRlib/ngspice/analog.cm
+ codemodel $EDA_DIRlib/ngspice/digital.cm
+ codemodel $EDA_DIRlib/ngspice/xtradev.cm
+ codemodel $EDA_DIRlib/ngspice/xtraevt.cm
+ codemodel $EDA_DIRlib/ngspice/table.cm
 
 end
 unset __flag

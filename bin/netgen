@@ -15,12 +15,12 @@
 TKCON=true
 BATCH=
 GUI=
-NETGEN_WISH=/home/wulff/pro/eda//tcl-tk/bin/wish8.6
+NETGEN_WISH=$EDA_DIR/tcl-tk/bin/wish8.6
 export NETGEN_WISH
 
 # Hacks for Cygwin
 if [ ${TERM:=""} = "cygwin" ]; then
-   export PATH="$PATH:/home/wulff/pro/eda//tcl-tk/lib"
+   export PATH="$PATH:$EDA_DIR/tcl-tk/lib"
    export DISPLAY=${DISPLAY:=":0"}
 fi
 
@@ -37,15 +37,15 @@ done
 
 if [ $TKCON ]; then
 
-   exec /home/wulff/pro/eda/lib/netgen/tcl/tkcon.tcl \
-	-eval "source /home/wulff/pro/eda/lib/netgen/tcl/console.tcl" \
+   exec $EDA_DIRlib/netgen/tcl/tkcon.tcl \
+	-eval "source $EDA_DIRlib/netgen/tcl/console.tcl" \
 	-slave "package require Tk; set argc $#; set argv [list $arglist]; \
-	source /home/wulff/pro/eda/lib/netgen/tcl/netgen.tcl"
+	source $EDA_DIRlib/netgen/tcl/netgen.tcl"
 
 # Run the Python LVS manager GUI
 
 elif [ $GUI ]; then
-    exec /home/wulff/pro/eda/lib/netgen/python/lvs_manager.py $@
+    exec $EDA_DIRlib/netgen/python/lvs_manager.py $@
 
 #
 # Run the stand-in for wish (netgenexec), which acts exactly like "wish"
@@ -55,6 +55,6 @@ elif [ $GUI ]; then
 #
 
 else
-   exec /home/wulff/pro/eda/lib/netgen/tcl/netgenexec -- "$@"
+   exec $EDA_DIRlib/netgen/tcl/netgenexec -- "$@"
 
 fi
