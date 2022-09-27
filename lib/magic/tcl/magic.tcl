@@ -202,11 +202,11 @@ for {set i 0} {$i < $argc} {incr i 1} {
          lappend argafter [lindex $argv $i]
       }
       ^--version {
-	 puts stdout "8.3.304"
+	 puts stdout "8.3.326"
 	 exit 0
       }
       ^--commit {
-	 puts stdout "62ce6cde059eec80c34f332b0c664ed388c3cdb1"
+	 puts stdout "f12a155ea72d72218913ea989159da1bec587be2"
 	 exit 0
       }
       ^--prefix {
