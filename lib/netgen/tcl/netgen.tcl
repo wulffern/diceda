@@ -21,9 +21,9 @@ foreach i $nlist {
 }
 
 # -lazy option not needed if stubs libraries are handled correctly
-# load -lazy $EDA_DIRlib/netgen/tcl/tclnetgen.so
+# load -lazy $EDA_DIR/lib/netgen/tcl/tclnetgen.so
 
-load $EDA_DIRlib/netgen/tcl/tclnetgen.so
+load $EDA_DIR/lib/netgen/tcl/tclnetgen.so
 
 #----------------------------------------------------------------
 # Convert LVS list result into a JSON file 
