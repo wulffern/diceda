@@ -13,19 +13,19 @@
 
 TCL_MAG_DIR=${CAD_ROOT}/magic/tcl
 if [ "${TCL_MAG_DIR}" = "/magic/tcl" ]; then
-   TCL_MAG_DIR=lib/magic/tcl
+   TCL_MAG_DIR=$EDA_DIRlib/magic/tcl
 fi
 TKCON=true
 DNULL=
 
 if [ -z "$MAGIC_WISH" ]; then
-   MAGIC_WISH=/bin/wish8.6
+   MAGIC_WISH=$EDA_DIR/bin/wish8.6
    export MAGIC_WISH
 fi
 
 # Hacks for Cygwin
 if [ "`uname | cut -d_ -f1`" = "CYGWIN" ]; then
-   export PATH="$PATH:/lib"
+   export PATH="$PATH:$EDA_DIR/lib"
    export DISPLAY=${DISPLAY:=":0"}
 fi
 

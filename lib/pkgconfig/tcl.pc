@@ -1,8 +1,8 @@
 # tcl pkg-config source file
 
-prefix=
-exec_prefix=
-libdir=/lib
+prefix=$EDA_DIR
+exec_prefix=$EDA_DIR
+libdir=$EDA_DIR/lib
 includedir=${prefix}/include
 
 Name: Tool Command Language
