@@ -1,7 +1,7 @@
 #ifndef IVL_ivl_target_H
 #define IVL_ivl_target_H
 /*
- * Copyright (c) 2000-2020 Stephen Williams (steve@icarus.com)
+ * Copyright (c) 2000-2021 Stephen Williams (steve@icarus.com)
  *
  *    This source code is free software; you can redistribute it
  *    and/or modify it in source code form under the terms of the GNU
@@ -21,6 +21,7 @@
 
 # include  <inttypes.h>
 # include  <stddef.h>
+# include  <stdbool.h>
 
 /* Re the _CLASS define: clang++ wants this to be class to match the
  * definition, but clang (the C) compiler needs it to be a struct
@@ -426,6 +427,7 @@ typedef enum ivl_statement_type_e {
       IVL_ST_FORK_JOIN_ANY  = 28,
       IVL_ST_FORK_JOIN_NONE = 29,
       IVL_ST_FREE    = 26,
+      IVL_ST_NB_TRIGGER = 31,
       IVL_ST_RELEASE = 17,
       IVL_ST_REPEAT  = 18,
       IVL_ST_STASK   = 19,
@@ -767,6 +769,9 @@ extern ivl_scope_t ivl_event_scope(ivl_event_t net);
 
 extern unsigned    ivl_event_nany(ivl_event_t net);
 extern ivl_nexus_t ivl_event_any(ivl_event_t net, unsigned idx);
+
+extern unsigned    ivl_event_nedg(ivl_event_t net);
+extern ivl_nexus_t ivl_event_edg(ivl_event_t net, unsigned idx);
 
 extern unsigned    ivl_event_nneg(ivl_event_t net);
 extern ivl_nexus_t ivl_event_neg(ivl_event_t net, unsigned idx);
@@ -2255,6 +2260,8 @@ extern uint64_t ivl_stmt_delay_val(ivl_statement_t net);
 extern unsigned    ivl_stmt_needs_t0_trigger(ivl_statement_t net);
 extern unsigned    ivl_stmt_nevent(ivl_statement_t net);
 extern ivl_event_t ivl_stmt_events(ivl_statement_t net, unsigned idx);
+  /* IVL_ST_DISABLE */
+extern bool ivl_stmt_flow_control(ivl_statement_t net);
   /* IVL_ST_CONTRIB */
 extern ivl_expr_t ivl_stmt_lexp(ivl_statement_t net);
   /* IVL_ST_ASSIGN IVL_ST_ASSIGN_NB IVL_ST_CASSIGN IVL_ST_DEASSIGN

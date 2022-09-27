@@ -1,0 +1,17 @@
+.DS_Store
+.idea
+*.log
+tmp/
+
+*.py[cod]
+*.egg
+build
+htmlcov
+tcl*
+tk*
+magic
+netgen
+xschem
+ngspice
+iverilog
+yosys
