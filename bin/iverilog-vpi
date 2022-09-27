@@ -21,14 +21,14 @@
 # These are the variables used for compiling files
 CC="cc"
 CXX=g++
-CFLAGS="-fPIC -Wall -Wextra -Wshadow -Wstrict-prototypes  -g -O2 -I/home/wulff/pro/eda/include/iverilog"
-CXXFLAGS="-fPIC -Wall -Wextra -Wshadow   -g -O2 -I/home/wulff/pro/eda/include/iverilog"
+CFLAGS="-fPIC -Wall -Wextra -Wshadow -Wstrict-prototypes  -g -O2 -I$EDA_DIR/include/iverilog"
+CXXFLAGS="-fPIC -Wall -Wextra -Wshadow   -g -O2 -I$EDA_DIR/include/iverilog"
 
 SUFFIX=
 
 # These are used for linking...
 LD=$CC
-LDFLAGS=" -shared -L/home/wulff/pro/eda/lib"
+LDFLAGS=" -shared -L$EDA_DIR/lib"
 LDLIBS="-lveriuser$SUFFIX -lvpi$SUFFIX"
 
 CCSRC=
@@ -112,7 +112,7 @@ do
 	 ;;
 
     --install-dir)
-	 echo "/home/wulff/pro/eda/lib/ivl$SUFFIX"
+	 echo "$EDA_DIR/lib/ivl$SUFFIX"
 	 exit
 	 ;;
     esac

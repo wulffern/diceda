@@ -36,11 +36,11 @@ TK_LIBS='-L/usr/lib/X11 -lX11 -lXss -lXext -lXft -lfontconfig -lfreetype -lfontc
 
 # Top-level directory in which Tk's platform-independent files are
 # installed.
-TK_PREFIX='/home/wulff/pro/eda/'
+TK_PREFIX='$EDA_DIR/'
 
 # Top-level directory in which Tk's platform-specific files (e.g.
 # executables) are installed.
-TK_EXEC_PREFIX='/home/wulff/pro/eda/'
+TK_EXEC_PREFIX='$EDA_DIR/'
 
 # -I switch(es) to use to make all of the X11 include files accessible:
 TK_XINCLUDES=''
@@ -53,15 +53,15 @@ TK_LIB_FLAG='-ltk8.6'
 
 # String to pass to linker to pick up the Tk library from its
 # build directory.
-TK_BUILD_LIB_SPEC='-L/home/wulff/pro/eda/build/tk8.6.10/unix -ltk8.6'
+TK_BUILD_LIB_SPEC='-L$EDA_DIR/build/tk8.6.10/unix -ltk8.6'
 
 # String to pass to linker to pick up the Tk library from its
 # installed directory.
-TK_LIB_SPEC='-L/home/wulff/pro/eda//lib -ltk8.6'
+TK_LIB_SPEC='-L$EDA_DIR//lib -ltk8.6'
 
 # String to pass to the compiler so that an extension can
 # find installed Tk headers.
-TK_INCLUDE_SPEC='-I/home/wulff/pro/eda//include'
+TK_INCLUDE_SPEC='-I$EDA_DIR//include'
 
 # Location of the top-level source directory from which Tk was built.
 # This is the directory that contains a README file as well as
@@ -69,7 +69,7 @@ TK_INCLUDE_SPEC='-I/home/wulff/pro/eda//include'
 # different place than the directory containing the source files, this
 # points to the location of the sources, not the location where Tk was
 # compiled.
-TK_SRC_DIR='/home/wulff/pro/eda/build/tk8.6.10'
+TK_SRC_DIR='$EDA_DIR/build/tk8.6.10'
 
 # Needed if you want to make a 'fat' shared library library
 # containing tk objects or link a different wish.
@@ -84,14 +84,14 @@ TK_STUB_LIB_FLAG='-ltkstub8.6'
 
 # String to pass to linker to pick up the Tk stub library from its
 # build directory.
-TK_BUILD_STUB_LIB_SPEC='-L/home/wulff/pro/eda/build/tk8.6.10/unix -ltkstub8.6'
+TK_BUILD_STUB_LIB_SPEC='-L$EDA_DIR/build/tk8.6.10/unix -ltkstub8.6'
 
 # String to pass to linker to pick up the Tk stub library from its
 # installed directory.
-TK_STUB_LIB_SPEC='-L/home/wulff/pro/eda//lib -ltkstub8.6'
+TK_STUB_LIB_SPEC='-L$EDA_DIR//lib -ltkstub8.6'
 
 # Path to the Tk stub library in the build directory.
-TK_BUILD_STUB_LIB_PATH='/home/wulff/pro/eda/build/tk8.6.10/unix/libtkstub8.6.a'
+TK_BUILD_STUB_LIB_PATH='$EDA_DIR/build/tk8.6.10/unix/libtkstub8.6.a'
 
 # Path to the Tk stub library in the install directory.
-TK_STUB_LIB_PATH='/home/wulff/pro/eda//lib/libtkstub8.6.a'
+TK_STUB_LIB_PATH='$EDA_DIR//lib/libtkstub8.6.a'
