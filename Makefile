@@ -21,6 +21,7 @@ magic:
 
 cmagic: magic
 	perl -pe "s/-g/-g -Wno-error=implicit-function-declaration/ig" -i magic/configure
+	cd magic && git pull
 	cd magic && ./configure --prefix=${prefix}tcl-tk --with-tcl=${prefix}tcl-tk/lib --with-tk=${prefix}tcl-tk/lib --x-includes=/usr/include/X11 --x-libraries=/usr/lib/X11 && make
 	cd magic && make install
 
@@ -29,6 +30,7 @@ xschem:
 	git clone https://github.com/StefanSchippers/xschem.git
 
 cxschem: xschem
+	cd xschem && git pull
 	cd xschem && ./configure --prefix=${prefix}
 	cd xschem && make
 	cd xschem && make install
@@ -53,14 +55,14 @@ iverilog:
 
 
 civerilog: iverilog
-	cd iverilog && sh autoconf.sh && ./configure --prefix ${prefix} && make && make install
+	cd iverilog && git pull &&sh autoconf.sh && ./configure --prefix ${prefix} && make && make install
 
 yosys:
 	git clone https://github.com/YosysHQ/yosys.git
 
 
 cyosys: yosys
-	cd yosys && make config-gcc PREFIX=${prefix} && make PREFIX=${prefix} && make install
+	cd yosys && git pull &make config-gcc PREFIX=${prefix} && make PREFIX=${prefix} && make install
 # TBD
 
 # Pre-requisites
@@ -69,7 +71,7 @@ cyosys: yosys
 # Need to use gcc-11 or gcc-12 from homebrew to get openmp to work
 cngspice: ngspice
 #--enable-xspice --enable-cider --with-readline=yes --enable-openmp
-	cd ngspice && ./autogen.sh && ./configure \
+	cd ngspice && git pull && ./autogen.sh && ./configure \
 	--prefix ${prefix} \
 	--with-x \
 	--x-includes=/usr/include/X11 \
