@@ -1,13 +1,14 @@
-
-BUILD=build
-
-clean:
-	rm -rf ${BUILD}
-	mkdir build
-
 tclver=tcl8.6.10
 tkver=tk8.6.10
 prefix = /opt/eda/
+BUILD=build
+
+clean:
+	-rm -rf ${BUILD}
+	mkdir --parents ${prefix}
+	mkdir build
+
+
 ${BUILD}/${tclver}:
 	cd ${BUILD} && wget https://prdownloads.sourceforge.net/tcl/${tclver}-src.tar.gz
 	cd ${BUILD} &&tar zxvf ${tclver}-src.tar.gz

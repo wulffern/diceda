@@ -24,8 +24,8 @@ TDBC_BUILD_LIB_SPEC="-L/opt/eda/build/tcl8.6.10/unix/pkgs/tdbc1.1.1 -ltdbc1.1.1"
 
 # String to pass to the linker to pick up the TDBC library from its installed
 # dir.
-tdbc_LIB_SPEC="-L/opt/eda/lib/tdbc1.1.1 -ltdbc1.1.1"
-TDBC_LIB_SPEC="-L/opt/eda/lib/tdbc1.1.1 -ltdbc1.1.1"
+tdbc_LIB_SPEC="-L/opt/eda//lib/tdbc1.1.1 -ltdbc1.1.1"
+TDBC_LIB_SPEC="-L/opt/eda//lib/tdbc1.1.1 -ltdbc1.1.1"
 
 # Name of the TBDC stub library
 tdbc_STUB_LIB_FILE="libtdbcstub1.1.1.a"
@@ -38,16 +38,16 @@ TDBC_BUILD_STUB_LIB_SPEC="-L/opt/eda/build/tcl8.6.10/unix/pkgs/tdbc1.1.1 -ltdbcs
 
 # String to pass to the linker to pick up the TDBC stub library from its
 # installed directory
-tdbc_STUB_LIB_SPEC="-L/opt/eda/lib/tdbc1.1.1 -ltdbcstub1.1.1"
-TDBC_STUB_LIB_SPEC="-L/opt/eda/lib/tdbc1.1.1 -ltdbcstub1.1.1"
+tdbc_STUB_LIB_SPEC="-L/opt/eda//lib/tdbc1.1.1 -ltdbcstub1.1.1"
+TDBC_STUB_LIB_SPEC="-L/opt/eda//lib/tdbc1.1.1 -ltdbcstub1.1.1"
 
 # Path name of the TDBC stub library in its build directory
 tdbc_BUILD_STUB_LIB_PATH="/opt/eda/build/tcl8.6.10/unix/pkgs/tdbc1.1.1/libtdbcstub1.1.1.a"
 TDBC_BUILD_STUB_LIB_PATH="/opt/eda/build/tcl8.6.10/unix/pkgs/tdbc1.1.1/libtdbcstub1.1.1.a"
 
 # Path name of the TDBC stub library in its installed directory
-tdbc_STUB_LIB_PATH="/opt/eda/lib/tdbc1.1.1/libtdbcstub1.1.1.a"
-TDBC_STUB_LIB_PATH="/opt/eda/lib/tdbc1.1.1/libtdbcstub1.1.1.a"
+tdbc_STUB_LIB_PATH="/opt/eda//lib/tdbc1.1.1/libtdbcstub1.1.1.a"
+TDBC_STUB_LIB_PATH="/opt/eda//lib/tdbc1.1.1/libtdbcstub1.1.1.a"
 
 # Location of the top-level source directories from which TDBC was built.
 # This is the directory that contains doc/, generic/ and so on.  If TDBC
@@ -68,8 +68,8 @@ tdbc_BUILD_INCLUDE_SPEC="-I/opt/eda/build/tcl8.6.10/pkgs/tdbc1.1.1/generic"
 TDBC_BUILD_INCLUDE_SPEC="-I/opt/eda/build/tcl8.6.10/pkgs/tdbc1.1.1/generic"
 
 # Path name where .tcl files in the tdbc package appear at run time.
-tdbc_LIBRARY_PATH="/opt/eda/lib/tdbc1.1.1"
-TDBC_LIBRARY_PATH="/opt/eda/lib/tdbc1.1.1"
+tdbc_LIBRARY_PATH="/opt/eda//lib/tdbc1.1.1"
+TDBC_LIBRARY_PATH="/opt/eda//lib/tdbc1.1.1"
 
 # Path name where .tcl files in the tdbc package appear at build time.
 tdbc_BUILD_LIBRARY_PATH="/opt/eda/build/tcl8.6.10/pkgs/tdbc1.1.1/library"
