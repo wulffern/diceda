@@ -7,7 +7,7 @@ clean:
 
 tclver=tcl8.6.10
 tkver=tk8.6.10
-prefix = ${HOME}/pro/eda/
+prefix = /opt/eda
 ${BUILD}/${tclver}:
 	cd ${BUILD} && wget https://prdownloads.sourceforge.net/tcl/${tclver}-src.tar.gz
 	cd ${BUILD} &&tar zxvf ${tclver}-src.tar.gz
@@ -75,7 +75,7 @@ ${BUILD}/yosys:
 # brew install bison
 # # fix bison paths
 # Need to use gcc-11 or gcc-12 from homebrew to get openmp to work
-cngspice: ngspice
+cngspice: ${BUILD}/ngspice
 #--enable-xspice --enable-cider --with-readline=yes --enable-openmp
 	cd ${BUILD} &&cd ngspice && git pull && ./autogen.sh && ./configure \
 	--prefix ${prefix} \
@@ -91,9 +91,4 @@ cngspice: ngspice
 	&&  make -j8
 	cd ${BUILD} &&cd ngspice &&  make install
 
-all: tcl tk cmagic cxschem cngspice cive
-
-replace:
-	egrep -R "/home/wulff/pro/eda/" share -l | xargs -I{} perl -ibak -pe 's#/home/wulff/pro/eda/#\$$EDA_DIR/#ig' {}
-	egrep -R "/home/wulff/pro/eda/" bin -l | xargs -I{} perl -ibak -pe 's#/home/wulff/pro/eda/#\$$EDA_DIR/#ig' {}
-	egrep -R "/home/wulff/pro/eda/" lib -l | xargs -I{} perl -ibak -pe 's#/home/wulff/pro/eda/#\$$EDA_DIR/#ig' {}
+all: clean tcl tk cmagic cnetgen cxschem cngspice civerilog cic
