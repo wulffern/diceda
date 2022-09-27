@@ -7,11 +7,5 @@ tmp/
 *.egg
 build
 htmlcov
-tcl*
-tk*
-magic
-netgen
-xschem
-ngspice
-iverilog
-yosys
+*.tar.gz
+doc

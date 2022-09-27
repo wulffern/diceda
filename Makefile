@@ -92,3 +92,8 @@ cngspice: ngspice
 	cd ${BUILD} &&cd ngspice &&  make install
 
 all: tcl tk cmagic cxschem cngspice cive
+
+replace:
+	egrep -R "/home/wulff/pro/eda/" share -l | xargs -I{} perl -ibak -pe "s#/home/wulff/pro/eda/#\$EDA_DIR#ig" {}
+	egrep -R "/home/wulff/pro/eda/" bin -l | xargs -I{} perl -ibak -pe "s#/home/wulff/pro/eda/#\$EDA_DIR#ig" {}
+	egrep -R "/home/wulff/pro/eda/" lib -l | xargs -I{} perl -ibak -pe "s#/home/wulff/pro/eda/#\$EDA_DIR#ig" {}

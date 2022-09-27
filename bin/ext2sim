@@ -16,7 +16,7 @@ for i in $@; do
 done
 TCL_MAG_DIR=${CAD_ROOT}/magic/tcl
 if [ "${TCL_MAG_DIR}" = "/magic/tcl" ]; then
-   TCL_MAG_DIR=/home/wulff/pro/eda/lib/magic/tcl
+   TCL_MAG_DIR=lib/magic/tcl
 fi
 #
 eval ${TCL_MAG_DIR}/magicdnull -dnull -noconsole -nowrapper $mgargs <<EOF
