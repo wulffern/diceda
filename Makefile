@@ -52,14 +52,17 @@ cnetgen:  ${BUILD}/netgen
 ${BUILD}/ngspice:
 	cd ${BUILD} &&git clone https://git.code.sf.net/p/ngspice/ngspice ngspice
 
-cic:
-	cd ${HOME}/pro/cic/ciccreator && git pull && make
-	cp ${HOME}/pro/cic/ciccreator/bin/linux/cic bin/cic
-	cp ${HOME}/pro/cic/ciccreator/bin/linux/cic-gui bin/cic-gui
+${BUILD}/ciccreator:
+	cd ${BUILD} && git clone https://github.com/wulffern/ciccreator.git
+
+cic: ${BUILD}/ciccreator
+	cd ${BUILD} && cd ciccreator && git pull && make
+	cp ${BUILD}/ciccreator/bin/linux/cic ${prefix}/bin/cic
+	cp ${BUILD}/ciccreator/bin/linux/cic-gui ${prefix}/bin/cic-gui
+
 
 ${BUILD}/iverilog:
 	cd ${BUILD} &&git clone https://github.com/steveicarus/iverilog.git
-
 
 civerilog:  ${BUILD}/iverilog
 	cd ${BUILD} &&cd iverilog && git pull &&sh autoconf.sh && ./configure --prefix ${prefix} && make && make install
